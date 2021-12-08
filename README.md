@@ -7,17 +7,19 @@ SPL [Token-swap](https://github.com/solana-labs/solana-program-library/tree/mast
 First, install dependencies:
 
 ```
-$ npm install
+$ yarn
 ```
 
-Make sure you have your local solana validator running if you want to deploy the program locally:
+Next, we will build and deploy the program via Anchor.
+
+Get the program ID:
 
 ```
-$ solana-test-validator
+$ anchor keys list
+anchor_amm: 4CkSf34hTH2rGmgFDCm5WCFE8sHpfdBzrBChEScJBxoM
 ```
 
-> If you are on Apple Sillicon M1 chip, you will have to build Solana from the source. See [this document](https://docs.solana.com/cli/install-solana-cli-tools#build-from-source) for more details
-> Next, we will build and deploy the program via Anchor.
+Here, make sure you update your program ID in `Anchor.toml` and `lib.rs`.
 
 Build the program:
 
@@ -25,14 +27,19 @@ Build the program:
 $ anchor build
 ```
 
-Deploy the program:
+Let's deploy the program. Notice that `anchor-amm` will be deployed on a [mainnet-fork](https://github.com/DappioWonderland/solana) test validator run by Dappio:
 
 ```
 $ anchor deploy
+...
+
+Program Id: 4CkSf34hTH2rGmgFDCm5WCFE8sHpfdBzrBChEScJBxoM
+
+Deploy success
 ```
 
 Finally, run the test:
 
 ```
-$ anchor test
+$ anchor test --skip-build --skip-deploy
 ```
