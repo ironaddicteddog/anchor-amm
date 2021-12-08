@@ -8,14 +8,14 @@ pub mod curve;
 use crate::curve::{
     base::SwapCurve,
     calculator::{CurveCalculator, RoundDirection, TradeDirection},
-    fees::Fees,
+    fees::CurveFees,
 };
 use crate::curve::{
     constant_price::ConstantPriceCurve, constant_product::ConstantProductCurve,
     offset::OffsetCurve, stable::StableCurve,
 };
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("4CkSf34hTH2rGmgFDCm5WCFE8sHpfdBzrBChEScJBxoM");
 
 #[program]
 pub mod amm {
@@ -653,7 +653,7 @@ pub mod amm {
 pub struct Initialize<'info> {
     pub authority: AccountInfo<'info>,
     #[account(signer, zero)]
-    pub amm: ProgramAccount<'info, AMM>,
+    pub amm: Box<Account<'info, Amm>>,
     #[account(mut)]
     pub pool_mint: Account<'info, Mint>,
     #[account(mut)]
@@ -670,7 +670,7 @@ pub struct Initialize<'info> {
 #[derive(Accounts)]
 pub struct Swap<'info> {
     pub authority: AccountInfo<'info>,
-    pub amm: ProgramAccount<'info, AMM>,
+    pub amm: Box<Account<'info, Amm>>,
     #[account(signer)]
     pub user_transfer_authority: AccountInfo<'info>,
     #[account(mut)]
@@ -691,7 +691,7 @@ pub struct Swap<'info> {
 
 #[derive(Accounts)]
 pub struct DepositAllTokenTypes<'info> {
-    pub amm: ProgramAccount<'info, AMM>,
+    pub amm: Box<Account<'info, Amm>>,
     pub authority: AccountInfo<'info>,
     #[account(signer)]
     pub user_transfer_authority_info: AccountInfo<'info>,
@@ -712,7 +712,7 @@ pub struct DepositAllTokenTypes<'info> {
 
 #[derive(Accounts)]
 pub struct DepositSingleTokenType<'info> {
-    pub amm: ProgramAccount<'info, AMM>,
+    pub amm: Box<Account<'info, Amm>>,
     pub authority: AccountInfo<'info>,
     #[account(signer)]
     pub user_transfer_authority_info: AccountInfo<'info>,
@@ -731,7 +731,7 @@ pub struct DepositSingleTokenType<'info> {
 
 #[derive(Accounts)]
 pub struct WithdrawAllTokenTypes<'info> {
-    pub amm: ProgramAccount<'info, AMM>,
+    pub amm: Box<Account<'info, Amm>>,
     pub authority: AccountInfo<'info>,
     #[account(signer)]
     pub user_transfer_authority_info: AccountInfo<'info>,
@@ -754,7 +754,7 @@ pub struct WithdrawAllTokenTypes<'info> {
 
 #[derive(Accounts)]
 pub struct WithdrawSingleTokenType<'info> {
-    pub amm: ProgramAccount<'info, AMM>,
+    pub amm: Box<Account<'info, Amm>>,
     pub authority: AccountInfo<'info>,
     #[account(signer)]
     pub user_transfer_authority_info: AccountInfo<'info>,
@@ -792,7 +792,7 @@ pub struct CurveInput {
 }
 
 #[account]
-pub struct AMM {
+pub struct Amm {
     pub initializer_key: Pubkey,
     pub initializer_deposit_token_account: Pubkey,
     pub initializer_receive_token_account: Pubkey,
@@ -927,7 +927,7 @@ pub struct SwapConstraints<'a> {
     /// Valid curve types
     pub valid_curve_types: &'a [CurveType],
     /// Valid fees
-    pub fees: &'a Fees,
+    pub fees: &'a CurveFees,
 }
 
 pub const SWAP_CONSTRAINTS: Option<SwapConstraints> = {
@@ -960,7 +960,7 @@ impl<'a> SwapConstraints<'a> {
     }
 
     /// Checks that the provided curve is valid for the given constraints
-    pub fn validate_fees(&self, fees: &Fees) -> Result<()> {
+    pub fn validate_fees(&self, fees: &CurveFees) -> Result<()> {
         if fees.trade_fee_numerator >= self.fees.trade_fee_numerator
             && fees.trade_fee_denominator == self.fees.trade_fee_denominator
             && fees.owner_trade_fee_numerator >= self.fees.owner_trade_fee_numerator
@@ -1174,7 +1174,7 @@ impl<'info> Swap<'info> {
 
 #[allow(clippy::too_many_arguments)]
 fn check_accounts(
-    amm: &AMM,
+    amm: &Amm,
     program_id: &Pubkey,
     amm_account_info: &AccountInfo,
     authority_info: &AccountInfo,
@@ -1250,8 +1250,8 @@ pub fn build_curve(curve_input: &CurveInput) -> Result<SwapCurve> {
     Ok(curve)
 }
 
-pub fn build_fees(fees_input: &FeesInput) -> Result<Fees> {
-    let fees = Fees {
+pub fn build_fees(fees_input: &FeesInput) -> Result<CurveFees> {
+    let fees = CurveFees {
         trade_fee_numerator: fees_input.trade_fee_numerator,
         trade_fee_denominator: fees_input.trade_fee_denominator,
         owner_trade_fee_numerator: fees_input.owner_trade_fee_numerator,

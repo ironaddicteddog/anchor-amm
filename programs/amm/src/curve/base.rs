@@ -9,7 +9,7 @@ use crate::curve::{
     calculator::{CurveCalculator, SwapWithoutFeesResult, TradeDirection},
     constant_price::ConstantPriceCurve,
     constant_product::ConstantProductCurve,
-    fees::Fees,
+    fees::CurveFees,
     offset::OffsetCurve,
     stable::StableCurve,
 };
@@ -73,7 +73,7 @@ impl SwapCurve {
         swap_source_amount: u128,
         swap_destination_amount: u128,
         trade_direction: TradeDirection,
-        fees: &Fees,
+        fees: &CurveFees,
     ) -> Option<SwapResult> {
         // debit the fee to calculate the amount swapped
         let trade_fee = fees.trading_fee(source_amount)?;
@@ -112,7 +112,7 @@ impl SwapCurve {
         swap_token_b_amount: u128,
         pool_supply: u128,
         trade_direction: TradeDirection,
-        fees: &Fees,
+        fees: &CurveFees,
     ) -> Option<u128> {
         if source_amount == 0 {
             return Some(0);
@@ -140,7 +140,7 @@ impl SwapCurve {
         swap_token_b_amount: u128,
         pool_supply: u128,
         trade_direction: TradeDirection,
-        fees: &Fees,
+        fees: &CurveFees,
     ) -> Option<u128> {
         if source_amount == 0 {
             return Some(0);
@@ -296,7 +296,7 @@ mod tests {
         let host_fee_numerator = 0;
         let host_fee_denominator = 0;
 
-        let fees = Fees {
+        let fees = CurveFees {
             trade_fee_numerator,
             trade_fee_denominator,
             owner_trade_fee_numerator,
@@ -341,7 +341,7 @@ mod tests {
         let owner_withdraw_fee_denominator = 0;
         let host_fee_numerator = 0;
         let host_fee_denominator = 0;
-        let fees = Fees {
+        let fees = CurveFees {
             trade_fee_numerator,
             trade_fee_denominator,
             owner_trade_fee_numerator,
@@ -379,7 +379,7 @@ mod tests {
         let swap_destination_amount: u128 = 50_000;
         let source_amount: u128 = 100;
         let curve = ConstantProductCurve::default();
-        let fees = Fees::default();
+        let fees = CurveFees::default();
         let swap_curve = SwapCurve {
             curve_type: CurveType::ConstantProduct,
             calculator: Box::new(curve),

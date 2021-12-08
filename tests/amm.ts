@@ -1,11 +1,13 @@
-import * as assert from 'assert';
 import * as anchor from '@project-serum/anchor';
-import { TOKEN_PROGRAM_ID, Token } from '@solana/spl-token';
-import { Connection, ConfirmOptions, PublicKey } from '@solana/web3.js';
+import { Context, Program } from '@project-serum/anchor';
+import { NodeWallet } from '@project-serum/anchor/dist/cjs/provider';
+import { Amm } from '../target/types/amm';
+import { PublicKey, SystemProgram, Transaction, Connection, Commitment } from '@solana/web3.js';
+import { TOKEN_PROGRAM_ID, Token, u64 } from "@solana/spl-token";
 import * as BufferLayout from 'buffer-layout';
-
-// import * as dotenv from 'dotenv';
-// dotenv.config();
+import { assert } from "chai";
+import { TypeDef } from '@project-serum/anchor/dist/cjs/program/namespace/types';
+import { IdlTypeDef } from '@project-serum/anchor/dist/cjs/idl';
 
 const CurveType = Object.freeze({
   ConstantProduct: 0, // Constant product curve, Uniswap-style
@@ -14,11 +16,15 @@ const CurveType = Object.freeze({
 });
 
 describe("amm", async () => {
-  // Configure the client to use the local cluster.
-  const provider = anchor.Provider.env();
+  const commitment: Commitment = 'processed';
+  const connection = new Connection('https://rpc-mainnet-fork.dappio.xyz', { commitment, wsEndpoint: 'wss://rpc-mainnet-fork.dappio.xyz/ws' });
+  const options = anchor.Provider.defaultOptions();
+  const wallet = NodeWallet.local();
+  const provider = new anchor.Provider(connection, wallet, options);
+
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.Amm;
+  const program = anchor.workspace.Amm as Program<Amm>;
 
   let authority: PublicKey;
   let bumpSeed: number;
@@ -151,7 +157,47 @@ describe("amm", async () => {
       data,
     );
     data = data.slice(0, encodeLength);
-    const fees_input = {
+
+    const fees_input: TypeDef<{
+      "name": "FeesInput",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tradeFeeNumerator",
+            "type": "u64"
+          },
+          {
+            "name": "tradeFeeDenominator",
+            "type": "u64"
+          },
+          {
+            "name": "ownerTradeFeeNumerator",
+            "type": "u64"
+          },
+          {
+            "name": "ownerTradeFeeDenominator",
+            "type": "u64"
+          },
+          {
+            "name": "ownerWithdrawFeeNumerator",
+            "type": "u64"
+          },
+          {
+            "name": "ownerWithdrawFeeDenominator",
+            "type": "u64"
+          },
+          {
+            "name": "hostFeeNumerator",
+            "type": "u64"
+          },
+          {
+            "name": "hostFeeDenominator",
+            "type": "u64"
+          }
+        ]
+      }
+    }, Record<string, number>> = {
       tradeFeeNumerator: new anchor.BN(TRADING_FEE_NUMERATOR),
       tradeFeeDenominator: new anchor.BN(TRADING_FEE_DENOMINATOR),
       ownerTradeFeeNumerator: new anchor.BN(OWNER_TRADING_FEE_NUMERATOR),
@@ -161,8 +207,23 @@ describe("amm", async () => {
       hostFeeNumerator: new anchor.BN(HOST_FEE_NUMERATOR),
       hostFeeDenominator: new anchor.BN(HOST_FEE_DENOMINATOR),
     };
-    const curve_input = {
-      curveType: new anchor.BN(CurveType.ConstantProduct),
+    const curve_input: TypeDef<{
+      "name": "CurveInput",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "curveType",
+            "type": "u8"
+          },
+          {
+            "name": "curveParameters",
+            "type": "u64"
+          }
+        ]
+      }
+    }, Record<string, number | u64>> = {
+      curveType: CurveType.ConstantProduct,
       curveParameters: new anchor.BN(0),
     };
 

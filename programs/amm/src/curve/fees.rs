@@ -11,7 +11,7 @@ use std::convert::TryFrom;
 
 /// Encapsulates all fee information and calculations for swap operations
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, Default, PartialEq)]
-pub struct Fees {
+pub struct CurveFees {
     /// Trade fees are extra token amounts that are held inside the token
     /// accounts during a trade, making the value of liquidity tokens rise.
     /// Trade fee numerator
@@ -72,7 +72,7 @@ fn validate_fraction(numerator: u64, denominator: u64) -> Result<(), SwapError> 
     }
 }
 
-impl Fees {
+impl CurveFees {
     /// Calculate the withdraw fee in pool tokens
     pub fn owner_withdraw_fee(&self, pool_tokens: u128) -> Option<u128> {
         calculate_fee(
@@ -127,14 +127,14 @@ impl Fees {
 }
 
 /// IsInitialized is required to use `Pack::pack` and `Pack::unpack`
-impl IsInitialized for Fees {
+impl IsInitialized for CurveFees {
     fn is_initialized(&self) -> bool {
         true
     }
 }
 
-impl Sealed for Fees {}
-impl Pack for Fees {
+impl Sealed for CurveFees {}
+impl Pack for CurveFees {
     const LEN: usize = 64;
     fn pack_into_slice(&self, output: &mut [u8]) {
         let output = array_mut_ref![output, 0, 64];
@@ -158,7 +158,7 @@ impl Pack for Fees {
         *host_fee_denominator = self.host_fee_denominator.to_le_bytes();
     }
 
-    fn unpack_from_slice(input: &[u8]) -> Result<Fees, ProgramError> {
+    fn unpack_from_slice(input: &[u8]) -> Result<CurveFees, ProgramError> {
         let input = array_ref![input, 0, 64];
         #[allow(clippy::ptr_offset_with_cast)]
         let (
@@ -198,7 +198,7 @@ impl Pack for Fees {
 //         let owner_withdraw_fee_denominator = 10;
 //         let host_fee_numerator = 7;
 //         let host_fee_denominator = 100;
-//         let fees = Fees {
+//         let fees = CurveFees {
 //             trade_fee_numerator,
 //             trade_fee_denominator,
 //             owner_trade_fee_numerator,
@@ -209,9 +209,9 @@ impl Pack for Fees {
 //             host_fee_denominator,
 //         };
 
-//         let mut packed = [0u8; Fees::LEN];
+//         let mut packed = [0u8; CurveFees::LEN];
 //         Pack::pack_into_slice(&fees, &mut packed[..]);
-//         let unpacked = Fees::unpack_from_slice(&packed).unwrap();
+//         let unpacked = CurveFees::unpack_from_slice(&packed).unwrap();
 //         assert_eq!(fees, unpacked);
 
 //         let mut packed = vec![];
@@ -223,7 +223,7 @@ impl Pack for Fees {
 //         packed.extend_from_slice(&owner_withdraw_fee_denominator.to_le_bytes());
 //         packed.extend_from_slice(&host_fee_numerator.to_le_bytes());
 //         packed.extend_from_slice(&host_fee_denominator.to_le_bytes());
-//         let unpacked = Fees::unpack_from_slice(&packed).unwrap();
+//         let unpacked = CurveFees::unpack_from_slice(&packed).unwrap();
 //         assert_eq!(fees, unpacked);
 //     }
 // }
