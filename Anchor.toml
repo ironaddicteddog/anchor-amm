@@ -1,5 +1,5 @@
 [programs.localnet]
-anchor_escrow = "4CkSf34hTH2rGmgFDCm5WCFE8sHpfdBzrBChEScJBxoM"
+anchor_escrow = "8b5j5Ua8jBDqnCZNB22NJAedd5TBs5NBAjqF65q8BpuS"
 
 [provider]
 cluster = "https://rpc-mainnet-fork.dappio.xyz"

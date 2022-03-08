@@ -15,7 +15,7 @@ use crate::curve::{
     offset::OffsetCurve, stable::StableCurve,
 };
 
-declare_id!("4CkSf34hTH2rGmgFDCm5WCFE8sHpfdBzrBChEScJBxoM");
+declare_id!("8b5j5Ua8jBDqnCZNB22NJAedd5TBs5NBAjqF65q8BpuS");
 
 #[program]
 pub mod amm {
@@ -25,7 +25,7 @@ pub mod amm {
         ctx: Context<Initialize>,
         fees_input: FeesInput,
         curve_input: CurveInput,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         if ctx.accounts.amm.is_initialized {
             return Err(SwapError::AlreadyInUse.into());
         }
@@ -129,10 +129,10 @@ pub mod amm {
         Ok(())
     }
 
-    pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> ProgramResult {
+    pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Result<()> {
         let amm = &mut ctx.accounts.amm;
         if amm.to_account_info().owner != ctx.program_id {
-            return Err(ProgramError::IncorrectProgramId);
+            return Err(ProgramError::IncorrectProgramId.into());
         }
 
         if *ctx.accounts.authority.key
@@ -271,7 +271,7 @@ pub mod amm {
         pool_token_amount: u64,
         maximum_token_a_amount: u64,
         maximum_token_b_amount: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let amm = &mut ctx.accounts.amm;
 
         let curve = build_curve(&amm.curve).unwrap();
@@ -360,7 +360,7 @@ pub mod amm {
         pool_token_amount: u64,
         minimum_token_a_amount: u64,
         minimum_token_b_amount: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let amm = &mut ctx.accounts.amm;
 
         let curve = build_curve(&amm.curve).unwrap();
@@ -459,7 +459,7 @@ pub mod amm {
         ctx: Context<DepositSingleTokenType>,
         source_token_amount: u64,
         minimum_pool_token_amount: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let amm = &mut ctx.accounts.amm;
 
         let curve = build_curve(&amm.curve).unwrap();
@@ -545,7 +545,7 @@ pub mod amm {
         ctx: Context<WithdrawSingleTokenType>,
         destination_token_amount: u64,
         maximum_pool_token_amount: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let amm = &mut ctx.accounts.amm;
 
         let curve = build_curve(&amm.curve).unwrap();
@@ -651,6 +651,7 @@ pub mod amm {
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
+    /// CHECK: Safe
     pub authority: AccountInfo<'info>,
     #[account(signer, zero)]
     pub amm: Box<Account<'info, Amm>>,
@@ -664,17 +665,22 @@ pub struct Initialize<'info> {
     pub fee_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub destination: Account<'info, TokenAccount>,
+    /// CHECK: Safe
     pub token_program: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
 pub struct Swap<'info> {
+    /// CHECK: Safe
     pub authority: AccountInfo<'info>,
     pub amm: Box<Account<'info, Amm>>,
+    /// CHECK: Safe
     #[account(signer)]
     pub user_transfer_authority: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(mut)]
     pub source_info: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(mut)]
     pub destination_info: AccountInfo<'info>,
     #[account(mut)]
@@ -685,18 +691,24 @@ pub struct Swap<'info> {
     pub pool_mint: Account<'info, Mint>,
     #[account(mut)]
     pub fee_account: Account<'info, TokenAccount>,
+    /// CHECK: Safe
     pub token_program: AccountInfo<'info>,
+    /// CHECK: Safe
     pub host_fee_account: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
 pub struct DepositAllTokenTypes<'info> {
     pub amm: Box<Account<'info, Amm>>,
+    /// CHECK: Safe
     pub authority: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(signer)]
     pub user_transfer_authority_info: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(mut)]
     pub source_a_info: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(mut)]
     pub source_b_info: AccountInfo<'info>,
     #[account(mut)]
@@ -705,15 +717,19 @@ pub struct DepositAllTokenTypes<'info> {
     pub token_b: Account<'info, TokenAccount>,
     #[account(mut)]
     pub pool_mint: Account<'info, Mint>,
+    /// CHECK: Safe
     #[account(mut)]
     pub destination: AccountInfo<'info>,
+    /// CHECK: Safe
     pub token_program: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
 pub struct DepositSingleTokenType<'info> {
     pub amm: Box<Account<'info, Amm>>,
+    /// CHECK: Safe
     pub authority: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(signer)]
     pub user_transfer_authority_info: AccountInfo<'info>,
     #[account(mut)]
@@ -724,17 +740,22 @@ pub struct DepositSingleTokenType<'info> {
     pub swap_token_b: Account<'info, TokenAccount>,
     #[account(mut)]
     pub pool_mint: Account<'info, Mint>,
+    /// CHECK: Safe
     #[account(mut)]
     pub destination: AccountInfo<'info>,
+    /// CHECK: Safe
     pub token_program: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
 pub struct WithdrawAllTokenTypes<'info> {
     pub amm: Box<Account<'info, Amm>>,
+    /// CHECK: Safe
     pub authority: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(signer)]
     pub user_transfer_authority_info: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(mut)]
     pub source_info: AccountInfo<'info>,
     #[account(mut)]
@@ -743,19 +764,25 @@ pub struct WithdrawAllTokenTypes<'info> {
     pub token_b: Account<'info, TokenAccount>,
     #[account(mut)]
     pub pool_mint: Account<'info, Mint>,
+    /// CHECK: Safe
     #[account(mut)]
     pub dest_token_a_info: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(mut)]
     pub dest_token_b_info: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(mut)]
     pub fee_account: AccountInfo<'info>,
+    /// CHECK: Safe
     pub token_program: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
 pub struct WithdrawSingleTokenType<'info> {
     pub amm: Box<Account<'info, Amm>>,
+    /// CHECK: Safe
     pub authority: AccountInfo<'info>,
+    /// CHECK: Safe
     #[account(signer)]
     pub user_transfer_authority_info: AccountInfo<'info>,
     #[account(mut)]
@@ -768,8 +795,10 @@ pub struct WithdrawSingleTokenType<'info> {
     pub pool_mint: Account<'info, Mint>,
     #[account(mut)]
     pub destination: Account<'info, TokenAccount>,
+    /// CHECK: Safe
     #[account(mut)]
     pub fee_account: AccountInfo<'info>,
+    /// CHECK: Safe
     pub token_program: AccountInfo<'info>,
 }
 
@@ -822,7 +851,7 @@ pub struct Amm {
     pub curve: CurveInput,
 }
 
-#[error]
+#[error_code]
 pub enum SwapError {
     // 0.
     // The account cannot be initialized because it is already being used.
@@ -1185,9 +1214,9 @@ fn check_accounts(
     user_token_a_info: Option<&AccountInfo>,
     user_token_b_info: Option<&AccountInfo>,
     pool_fee_account_info: Option<&AccountInfo>,
-) -> ProgramResult {
+) -> Result<()> {
     if amm_account_info.owner != program_id {
-        return Err(ProgramError::IncorrectProgramId);
+        return Err(ProgramError::IncorrectProgramId.into());
     }
     if *authority_info.key != authority_id(program_id, amm_account_info.key, amm.bump_seed)? {
         return Err(SwapError::InvalidProgramAddress.into());

@@ -1,13 +1,13 @@
-import * as anchor from '@project-serum/anchor';
-import { Context, Program } from '@project-serum/anchor';
-import { NodeWallet } from '@project-serum/anchor/dist/cjs/provider';
-import { Amm } from '../target/types/amm';
-import { PublicKey, SystemProgram, Transaction, Connection, Commitment } from '@solana/web3.js';
+import * as anchor from "@project-serum/anchor";
+import { Program } from "@project-serum/anchor";
+import NodeWallet from "@project-serum/anchor/dist/cjs/nodewallet";
+import { Amm } from "../target/types/amm";
+import { PublicKey, Connection, Commitment } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, Token, u64 } from "@solana/spl-token";
-import * as BufferLayout from 'buffer-layout';
+import * as BufferLayout from "buffer-layout";
 import { assert } from "chai";
-import { TypeDef } from '@project-serum/anchor/dist/cjs/program/namespace/types';
-import { IdlTypeDef } from '@project-serum/anchor/dist/cjs/idl';
+import { TypeDef } from "@project-serum/anchor/dist/cjs/program/namespace/types";
+import { IdlTypeDef } from "@project-serum/anchor/dist/cjs/idl";
 
 const CurveType = Object.freeze({
   ConstantProduct: 0, // Constant product curve, Uniswap-style
@@ -16,8 +16,11 @@ const CurveType = Object.freeze({
 });
 
 describe("amm", async () => {
-  const commitment: Commitment = 'processed';
-  const connection = new Connection('https://rpc-mainnet-fork.dappio.xyz', { commitment, wsEndpoint: 'wss://rpc-mainnet-fork.dappio.xyz/ws' });
+  const commitment: Commitment = "processed";
+  const connection = new Connection("https://rpc-mainnet-fork.dappio.xyz", {
+    commitment,
+    wsEndpoint: "wss://rpc-mainnet-fork.dappio.xyz/ws",
+  });
   const options = anchor.Provider.defaultOptions();
   const wallet = NodeWallet.local();
   const provider = new anchor.Provider(connection, wallet, options);
@@ -31,7 +34,8 @@ describe("amm", async () => {
   let tokenPool: Token;
   let tokenAccountPool: PublicKey;
   let feeAccount: PublicKey;
-  const SWAP_PROGRAM_OWNER_FEE_ADDRESS = process.env.SWAP_PROGRAM_OWNER_FEE_ADDRESS;
+  const SWAP_PROGRAM_OWNER_FEE_ADDRESS =
+    process.env.SWAP_PROGRAM_OWNER_FEE_ADDRESS;
   let mintA: Token;
   let mintB: Token;
   let tokenAccountA: PublicKey;
@@ -69,16 +73,15 @@ describe("amm", async () => {
   const owner = anchor.web3.Keypair.generate();
 
   it("Initialize AMM", async () => {
-
-    const sig = await provider.connection.requestAirdrop(payer.publicKey, 10000000000);
-    await provider.connection.confirmTransaction(
-      sig,
-      "singleGossip"
+    const sig = await provider.connection.requestAirdrop(
+      payer.publicKey,
+      1000000000
     );
+    await provider.connection.confirmTransaction(sig, "singleGossip");
 
     [authority, bumpSeed] = await PublicKey.findProgramAddress(
       [ammAccount.publicKey.toBuffer()],
-      program.programId,
+      program.programId
     );
 
     // creating pool mint
@@ -94,7 +97,8 @@ describe("amm", async () => {
 
     // creating pool account
     tokenAccountPool = await tokenPool.createAccount(owner.publicKey);
-    const ownerKey = SWAP_PROGRAM_OWNER_FEE_ADDRESS || owner.publicKey.toString();
+    const ownerKey =
+      SWAP_PROGRAM_OWNER_FEE_ADDRESS || owner.publicKey.toString();
     feeAccount = await tokenPool.createAccount(new PublicKey(ownerKey));
 
     // creating token A
@@ -104,7 +108,7 @@ describe("amm", async () => {
       owner.publicKey,
       null,
       2,
-      TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID
     );
 
     // creating token A account
@@ -119,7 +123,7 @@ describe("amm", async () => {
       owner.publicKey,
       null,
       2,
-      TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID
     );
 
     // creating token B account
@@ -128,16 +132,16 @@ describe("amm", async () => {
     await mintB.mintTo(tokenAccountB, owner, [], currentSwapTokenB);
 
     const commandDataLayout = BufferLayout.struct([
-      BufferLayout.nu64('tradeFeeNumerator'),
-      BufferLayout.nu64('tradeFeeDenominator'),
-      BufferLayout.nu64('ownerTradeFeeNumerator'),
-      BufferLayout.nu64('ownerTradeFeeDenominator'),
-      BufferLayout.nu64('ownerWithdrawFeeNumerator'),
-      BufferLayout.nu64('ownerWithdrawFeeDenominator'),
-      BufferLayout.nu64('hostFeeNumerator'),
-      BufferLayout.nu64('hostFeeDenominator'),
-      BufferLayout.u8('curveType'),
-      BufferLayout.nu64('curveParameters'),
+      BufferLayout.nu64("tradeFeeNumerator"),
+      BufferLayout.nu64("tradeFeeDenominator"),
+      BufferLayout.nu64("ownerTradeFeeNumerator"),
+      BufferLayout.nu64("ownerTradeFeeDenominator"),
+      BufferLayout.nu64("ownerWithdrawFeeNumerator"),
+      BufferLayout.nu64("ownerWithdrawFeeDenominator"),
+      BufferLayout.nu64("hostFeeNumerator"),
+      BufferLayout.nu64("hostFeeDenominator"),
+      BufferLayout.u8("curveType"),
+      BufferLayout.nu64("curveParameters"),
       // BufferLayout.blob(32, 'curveParameters'),
     ]);
     let data = Buffer.alloc(1024);
@@ -154,99 +158,101 @@ describe("amm", async () => {
         curveType: CurveType.ConstantProduct,
         curveParameters: 0,
       },
-      data,
+      data
     );
     data = data.slice(0, encodeLength);
 
-    const fees_input: TypeDef<{
-      "name": "FeesInput",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "tradeFeeNumerator",
-            "type": "u64"
-          },
-          {
-            "name": "tradeFeeDenominator",
-            "type": "u64"
-          },
-          {
-            "name": "ownerTradeFeeNumerator",
-            "type": "u64"
-          },
-          {
-            "name": "ownerTradeFeeDenominator",
-            "type": "u64"
-          },
-          {
-            "name": "ownerWithdrawFeeNumerator",
-            "type": "u64"
-          },
-          {
-            "name": "ownerWithdrawFeeDenominator",
-            "type": "u64"
-          },
-          {
-            "name": "hostFeeNumerator",
-            "type": "u64"
-          },
-          {
-            "name": "hostFeeDenominator",
-            "type": "u64"
-          }
-        ]
-      }
-    }, Record<string, number>> = {
+    const fees_input: TypeDef<
+      {
+        name: "FeesInput";
+        type: {
+          kind: "struct";
+          fields: [
+            {
+              name: "tradeFeeNumerator";
+              type: "u64";
+            },
+            {
+              name: "tradeFeeDenominator";
+              type: "u64";
+            },
+            {
+              name: "ownerTradeFeeNumerator";
+              type: "u64";
+            },
+            {
+              name: "ownerTradeFeeDenominator";
+              type: "u64";
+            },
+            {
+              name: "ownerWithdrawFeeNumerator";
+              type: "u64";
+            },
+            {
+              name: "ownerWithdrawFeeDenominator";
+              type: "u64";
+            },
+            {
+              name: "hostFeeNumerator";
+              type: "u64";
+            },
+            {
+              name: "hostFeeDenominator";
+              type: "u64";
+            }
+          ];
+        };
+      },
+      Record<string, number>
+    > = {
       tradeFeeNumerator: new anchor.BN(TRADING_FEE_NUMERATOR),
       tradeFeeDenominator: new anchor.BN(TRADING_FEE_DENOMINATOR),
       ownerTradeFeeNumerator: new anchor.BN(OWNER_TRADING_FEE_NUMERATOR),
       ownerTradeFeeDenominator: new anchor.BN(OWNER_TRADING_FEE_DENOMINATOR),
       ownerWithdrawFeeNumerator: new anchor.BN(OWNER_WITHDRAW_FEE_NUMERATOR),
-      ownerWithdrawFeeDenominator: new anchor.BN(OWNER_WITHDRAW_FEE_DENOMINATOR),
+      ownerWithdrawFeeDenominator: new anchor.BN(
+        OWNER_WITHDRAW_FEE_DENOMINATOR
+      ),
       hostFeeNumerator: new anchor.BN(HOST_FEE_NUMERATOR),
       hostFeeDenominator: new anchor.BN(HOST_FEE_DENOMINATOR),
     };
-    const curve_input: TypeDef<{
-      "name": "CurveInput",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "curveType",
-            "type": "u8"
-          },
-          {
-            "name": "curveParameters",
-            "type": "u64"
-          }
-        ]
-      }
-    }, Record<string, number | u64>> = {
+    const curve_input: TypeDef<
+      {
+        name: "CurveInput";
+        type: {
+          kind: "struct";
+          fields: [
+            {
+              name: "curveType";
+              type: "u8";
+            },
+            {
+              name: "curveParameters";
+              type: "u64";
+            }
+          ];
+        };
+      },
+      Record<string, number | u64>
+    > = {
       curveType: CurveType.ConstantProduct,
       curveParameters: new anchor.BN(0),
     };
 
-    await program.rpc.initialize(
-      fees_input,
-      curve_input,
-      {
-        accounts: {
-          authority: authority,
-          amm: ammAccount.publicKey,
-          tokenA: tokenAccountA,
-          tokenB: tokenAccountB,
-          poolMint: tokenPool.publicKey,
-          feeAccount: feeAccount,
-          destination: tokenAccountPool,
-          tokenProgram: TOKEN_PROGRAM_ID
-        },
-        instructions: [
-          await program.account.amm.createInstruction(ammAccount),
-        ],
-        signers: [ammAccount],
-      }
-    );
+    await program.rpc.initialize(fees_input, curve_input, {
+      accounts: {
+        authority: authority,
+        amm: ammAccount.publicKey,
+        tokenA: tokenAccountA,
+        tokenB: tokenAccountB,
+        poolMint: tokenPool.publicKey,
+        feeAccount: feeAccount,
+        destination: tokenAccountPool,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      },
+      instructions: [await program.account.amm.createInstruction(ammAccount)],
+      signers: [ammAccount],
+    });
 
     let fetchedAmmAccount = await program.account.amm.fetch(
       ammAccount.publicKey
@@ -260,30 +266,35 @@ describe("amm", async () => {
     assert(fetchedAmmAccount.poolMint.equals(tokenPool.publicKey));
     assert(fetchedAmmAccount.poolFeeAccount.equals(feeAccount));
     assert(
-      TRADING_FEE_NUMERATOR == fetchedAmmAccount.fees.tradeFeeNumerator.toNumber(),
+      TRADING_FEE_NUMERATOR ==
+        fetchedAmmAccount.fees.tradeFeeNumerator.toNumber()
     );
     assert(
-      TRADING_FEE_DENOMINATOR == fetchedAmmAccount.fees.tradeFeeDenominator.toNumber(),
+      TRADING_FEE_DENOMINATOR ==
+        fetchedAmmAccount.fees.tradeFeeDenominator.toNumber()
     );
     assert(
       OWNER_TRADING_FEE_NUMERATOR ==
-        fetchedAmmAccount.fees.ownerTradeFeeNumerator.toNumber(),
+        fetchedAmmAccount.fees.ownerTradeFeeNumerator.toNumber()
     );
     assert(
       OWNER_TRADING_FEE_DENOMINATOR ==
-        fetchedAmmAccount.fees.ownerTradeFeeDenominator.toNumber(),
+        fetchedAmmAccount.fees.ownerTradeFeeDenominator.toNumber()
     );
     assert(
       OWNER_WITHDRAW_FEE_NUMERATOR ==
-        fetchedAmmAccount.fees.ownerWithdrawFeeNumerator.toNumber(),
+        fetchedAmmAccount.fees.ownerWithdrawFeeNumerator.toNumber()
     );
     assert(
       OWNER_WITHDRAW_FEE_DENOMINATOR ==
-        fetchedAmmAccount.fees.ownerWithdrawFeeDenominator.toNumber(),
+        fetchedAmmAccount.fees.ownerWithdrawFeeDenominator.toNumber()
     );
-    assert(HOST_FEE_NUMERATOR == fetchedAmmAccount.fees.hostFeeNumerator.toNumber());
     assert(
-      HOST_FEE_DENOMINATOR == fetchedAmmAccount.fees.hostFeeDenominator.toNumber(),
+      HOST_FEE_NUMERATOR == fetchedAmmAccount.fees.hostFeeNumerator.toNumber()
+    );
+    assert(
+      HOST_FEE_DENOMINATOR ==
+        fetchedAmmAccount.fees.hostFeeDenominator.toNumber()
     );
     assert(curve_input.curveType == fetchedAmmAccount.curve.curveType);
   });
@@ -293,11 +304,11 @@ describe("amm", async () => {
     const supply = (poolMintInfo.supply as anchor.BN).toNumber();
     const swapTokenA = await mintA.getAccountInfo(tokenAccountA);
     const tokenAAmount = Math.floor(
-      ((swapTokenA.amount as anchor.BN).toNumber() * POOL_TOKEN_AMOUNT) / supply,
+      ((swapTokenA.amount as anchor.BN).toNumber() * POOL_TOKEN_AMOUNT) / supply
     );
     const swapTokenB = await mintB.getAccountInfo(tokenAccountB);
     const tokenBAmount = Math.floor(
-      ((swapTokenB.amount as anchor.BN).toNumber() * POOL_TOKEN_AMOUNT) / supply,
+      ((swapTokenB.amount as anchor.BN).toNumber() * POOL_TOKEN_AMOUNT) / supply
     );
 
     const userTransferAuthority = anchor.web3.Keypair.generate();
@@ -309,7 +320,7 @@ describe("amm", async () => {
       userTransferAuthority.publicKey,
       owner,
       [],
-      tokenAAmount,
+      tokenAAmount
     );
     // Creating depositor token b account
     const userAccountB = await mintB.createAccount(owner.publicKey);
@@ -319,7 +330,7 @@ describe("amm", async () => {
       userTransferAuthority.publicKey,
       owner,
       [],
-      tokenBAmount,
+      tokenBAmount
     );
     // Creating depositor pool token account
     const newAccountPool = await tokenPool.createAccount(owner.publicKey);
@@ -342,7 +353,7 @@ describe("amm", async () => {
           destination: newAccountPool,
           tokenProgram: TOKEN_PROGRAM_ID,
         },
-        signers: [userTransferAuthority]
+        signers: [userTransferAuthority],
       }
     );
 
@@ -370,22 +381,22 @@ describe("amm", async () => {
     if (OWNER_WITHDRAW_FEE_NUMERATOR !== 0) {
       feeAmount = Math.floor(
         (POOL_TOKEN_AMOUNT * OWNER_WITHDRAW_FEE_NUMERATOR) /
-          OWNER_WITHDRAW_FEE_DENOMINATOR,
+          OWNER_WITHDRAW_FEE_DENOMINATOR
       );
     }
     const poolTokenAmount = POOL_TOKEN_AMOUNT - feeAmount;
     const tokenAAmount = Math.floor(
-      ((swapTokenA.amount as anchor.BN).toNumber() * poolTokenAmount) / supply,
+      ((swapTokenA.amount as anchor.BN).toNumber() * poolTokenAmount) / supply
     );
     const tokenBAmount = Math.floor(
-      ((swapTokenB.amount as anchor.BN).toNumber() * poolTokenAmount) / supply,
+      ((swapTokenB.amount as anchor.BN).toNumber() * poolTokenAmount) / supply
     );
-  
+
     // Creating withdraw token A account
     let userAccountA = await mintA.createAccount(owner.publicKey);
     // Creating withdraw token B account
     let userAccountB = await mintB.createAccount(owner.publicKey);
-  
+
     const userTransferAuthority = anchor.web3.Keypair.generate();
 
     // Approving withdrawal from pool account
@@ -394,9 +405,9 @@ describe("amm", async () => {
       userTransferAuthority.publicKey,
       owner,
       [],
-      POOL_TOKEN_AMOUNT,
+      POOL_TOKEN_AMOUNT
     );
-  
+
     // Withdrawing pool tokens for A and B tokens
     await program.rpc.withdrawAllTokenTypes(
       new anchor.BN(POOL_TOKEN_AMOUNT),
@@ -416,20 +427,27 @@ describe("amm", async () => {
           feeAccount: feeAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         },
-        signers: [userTransferAuthority]
+        signers: [userTransferAuthority],
       }
-    )
-  
+    );
+
     swapTokenA = await mintA.getAccountInfo(tokenAccountA);
     swapTokenB = await mintB.getAccountInfo(tokenAccountB);
-  
+
     let info = await tokenPool.getAccountInfo(tokenAccountPool);
     assert(
-      (info.amount as anchor.BN).toNumber() == DEFAULT_POOL_TOKEN_AMOUNT - POOL_TOKEN_AMOUNT,
+      (info.amount as anchor.BN).toNumber() ==
+        DEFAULT_POOL_TOKEN_AMOUNT - POOL_TOKEN_AMOUNT
     );
-    assert((swapTokenA.amount as anchor.BN).toNumber() == currentSwapTokenA - tokenAAmount);
+    assert(
+      (swapTokenA.amount as anchor.BN).toNumber() ==
+        currentSwapTokenA - tokenAAmount
+    );
     currentSwapTokenA -= tokenAAmount;
-    assert((swapTokenB.amount as anchor.BN).toNumber() == currentSwapTokenB - tokenBAmount);
+    assert(
+      (swapTokenB.amount as anchor.BN).toNumber() ==
+        currentSwapTokenB - tokenBAmount
+    );
     currentSwapTokenB -= tokenBAmount;
     info = await mintA.getAccountInfo(userAccountA);
     assert((info.amount as anchor.BN).toNumber() == tokenAAmount);
@@ -450,7 +468,7 @@ describe("amm", async () => {
       userTransferAuthority.publicKey,
       owner,
       [],
-      SWAP_AMOUNT_IN,
+      SWAP_AMOUNT_IN
     );
     // Creating swap token b account
     let userAccountB = await mintB.createAccount(owner.publicKey);
@@ -478,7 +496,7 @@ describe("amm", async () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           hostFeeAccount: PublicKey.default,
         },
-        signers: [userTransferAuthority]
+        signers: [userTransferAuthority],
       }
     );
 
@@ -499,7 +517,7 @@ describe("amm", async () => {
 
     info = await tokenPool.getAccountInfo(tokenAccountPool);
     assert(
-      info.amount.toNumber() == DEFAULT_POOL_TOKEN_AMOUNT - POOL_TOKEN_AMOUNT,
+      info.amount.toNumber() == DEFAULT_POOL_TOKEN_AMOUNT - POOL_TOKEN_AMOUNT
     );
 
     info = await tokenPool.getAccountInfo(feeAccount);
@@ -512,14 +530,18 @@ describe("amm", async () => {
   });
 
   it("DepositSingleTokenType", async () => {
-    const tradingTokensToPoolTokens = (sourceAmount: number, swapSourceAmount: number, poolAmount: number): number => {
+    const tradingTokensToPoolTokens = (
+      sourceAmount: number,
+      swapSourceAmount: number,
+      poolAmount: number
+    ): number => {
       const tradingFee =
         (sourceAmount / 2) * (TRADING_FEE_NUMERATOR / TRADING_FEE_DENOMINATOR);
       const sourceAmountPostFee = sourceAmount - tradingFee;
       const root = Math.sqrt(sourceAmountPostFee / swapSourceAmount + 1);
       return Math.floor(poolAmount * (root - 1));
-    }
-    
+    };
+
     // Pool token amount to deposit on one side
     const depositAmount = 10000;
 
@@ -529,13 +551,13 @@ describe("amm", async () => {
     const poolTokenAAmount = tradingTokensToPoolTokens(
       depositAmount,
       (swapTokenA.amount as anchor.BN).toNumber(),
-      supply,
+      supply
     );
     const swapTokenB = await mintB.getAccountInfo(tokenAccountB);
     const poolTokenBAmount = tradingTokensToPoolTokens(
       depositAmount,
       (swapTokenB.amount as anchor.BN).toNumber(),
-      supply,
+      supply
     );
 
     const userTransferAuthority = anchor.web3.Keypair.generate();
@@ -547,7 +569,7 @@ describe("amm", async () => {
       userTransferAuthority.publicKey,
       owner,
       [],
-      depositAmount,
+      depositAmount
     );
     // Creating depositor token b account
     const userAccountB = await mintB.createAccount(owner.publicKey);
@@ -557,7 +579,7 @@ describe("amm", async () => {
       userTransferAuthority.publicKey,
       owner,
       [],
-      depositAmount,
+      depositAmount
     );
     // Creating depositor pool token account
     const newAccountPool = await tokenPool.createAccount(owner.publicKey);
@@ -578,8 +600,9 @@ describe("amm", async () => {
           destination: newAccountPool,
           tokenProgram: TOKEN_PROGRAM_ID,
         },
-        signers: [userTransferAuthority]
-      });
+        signers: [userTransferAuthority],
+      }
+    );
 
     let info;
     info = await mintA.getAccountInfo(userAccountA);
@@ -604,8 +627,9 @@ describe("amm", async () => {
           destination: newAccountPool,
           tokenProgram: TOKEN_PROGRAM_ID,
         },
-        signers: [userTransferAuthority]
-      });
+        signers: [userTransferAuthority],
+      }
+    );
 
     info = await mintB.getAccountInfo(userAccountB);
     assert(info.amount.toNumber() == 0);
@@ -617,13 +641,17 @@ describe("amm", async () => {
   });
 
   it("WithdrawSingleTokenType", async () => {
-    const tradingTokensToPoolTokens = (sourceAmount: number, swapSourceAmount: number, poolAmount: number): number => {
+    const tradingTokensToPoolTokens = (
+      sourceAmount: number,
+      swapSourceAmount: number,
+      poolAmount: number
+    ): number => {
       const tradingFee =
         (sourceAmount / 2) * (TRADING_FEE_NUMERATOR / TRADING_FEE_DENOMINATOR);
       const sourceAmountPostFee = sourceAmount - tradingFee;
       const root = Math.sqrt(sourceAmountPostFee / swapSourceAmount + 1);
       return Math.floor(poolAmount * (root - 1));
-    }
+    };
 
     // Pool token amount to withdraw on one side
     const withdrawAmount = 50000;
@@ -633,11 +661,12 @@ describe("amm", async () => {
     const supply = (poolMintInfo.supply as anchor.BN).toNumber();
 
     const swapTokenA = await mintA.getAccountInfo(tokenAccountA);
-    const swapTokenAPost = (swapTokenA.amount as anchor.BN).toNumber() - withdrawAmount;
+    const swapTokenAPost =
+      (swapTokenA.amount as anchor.BN).toNumber() - withdrawAmount;
     const poolTokenA = tradingTokensToPoolTokens(
       withdrawAmount,
       swapTokenAPost,
-      supply,
+      supply
     );
     let adjustedPoolTokenA = poolTokenA * roundingAmount;
     if (OWNER_WITHDRAW_FEE_NUMERATOR !== 0) {
@@ -646,11 +675,12 @@ describe("amm", async () => {
     }
 
     const swapTokenB = await mintB.getAccountInfo(tokenAccountB);
-    const swapTokenBPost = (swapTokenB.amount as anchor.BN).toNumber() - withdrawAmount;
+    const swapTokenBPost =
+      (swapTokenB.amount as anchor.BN).toNumber() - withdrawAmount;
     const poolTokenB = tradingTokensToPoolTokens(
       withdrawAmount,
       swapTokenBPost,
-      supply,
+      supply
     );
     let adjustedPoolTokenB = poolTokenB * roundingAmount;
     if (OWNER_WITHDRAW_FEE_NUMERATOR !== 0) {
@@ -671,7 +701,7 @@ describe("amm", async () => {
       userTransferAuthority.publicKey,
       owner,
       [],
-      adjustedPoolTokenA + adjustedPoolTokenB,
+      adjustedPoolTokenA + adjustedPoolTokenB
     );
 
     // Withdrawing token A only
@@ -691,9 +721,9 @@ describe("amm", async () => {
           feeAccount: feeAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         },
-        signers: [userTransferAuthority]
-      });
-
+        signers: [userTransferAuthority],
+      }
+    );
 
     let info;
     info = await mintA.getAccountInfo(userAccountA);
@@ -721,8 +751,9 @@ describe("amm", async () => {
           feeAccount: feeAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
         },
-        signers: [userTransferAuthority]
-      });
+        signers: [userTransferAuthority],
+      }
+    );
 
     info = await mintB.getAccountInfo(userAccountB);
     assert(info.amount.toNumber() == withdrawAmount);
@@ -732,7 +763,7 @@ describe("amm", async () => {
     info = await tokenPool.getAccountInfo(tokenAccountPool);
     assert(
       info.amount.toNumber() >=
-        poolTokenAmount - adjustedPoolTokenA - adjustedPoolTokenB,
+        poolTokenAmount - adjustedPoolTokenA - adjustedPoolTokenB
     );
-  })
+  });
 });

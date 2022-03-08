@@ -62,7 +62,7 @@ pub fn calculate_fee(
     }
 }
 
-fn validate_fraction(numerator: u64, denominator: u64) -> Result<(), SwapError> {
+fn validate_fraction(numerator: u64, denominator: u64) -> std::result::Result<(), SwapError> {
     if denominator == 0 && numerator == 0 {
         Ok(())
     } else if numerator >= denominator {
@@ -111,7 +111,7 @@ impl CurveFees {
     }
 
     /// Validate that the fees are reasonable
-    pub fn validate(&self) -> Result<(), SwapError> {
+    pub fn validate(&self) -> std::result::Result<(), SwapError> {
         validate_fraction(self.trade_fee_numerator, self.trade_fee_denominator)?;
         validate_fraction(
             self.owner_trade_fee_numerator,
@@ -158,7 +158,7 @@ impl Pack for CurveFees {
         *host_fee_denominator = self.host_fee_denominator.to_le_bytes();
     }
 
-    fn unpack_from_slice(input: &[u8]) -> Result<CurveFees, ProgramError> {
+    fn unpack_from_slice(input: &[u8]) -> std::result::Result<CurveFees, ProgramError> {
         let input = array_ref![input, 0, 64];
         #[allow(clippy::ptr_offset_with_cast)]
         let (
